@@ -22,27 +22,77 @@ run on demand or automatically at Windows login.
 ## Installing (for end users)
 
 You don't need Node, Rust, or .NET installed to just *use* the app - those
-are only required to build it. To install and run it:
+are only required to build it.
 
-1. **Get the installer.** Either download it from this repository's
-   [Releases](../../releases) page if one has been published, or build it
-   yourself (see "Building the Windows application" below) — the installer
-   ends up at `src-tauri/target/release/bundle/nsis/Automation Launcher_<version>_x64-setup.exe`
-   (or the `.msi` next to it).
-2. **Run the installer** and follow the prompts. Since it isn't code-signed,
-   Windows SmartScreen will likely show an "unrecognized app" warning the
-   first time — click **More info → Run anyway** if you trust where it came
-   from.
-3. **Launch "Automation Launcher"** from the Start Menu.
-4. On first launch there's nothing configured yet - go to **Profiles →
-   Create Profile**, add a few tasks (an app, a URL, a Chrome/Edge window,
-   or a wait), and hit **Run Now** to try it.
-5. To have a profile run automatically every time you log into Windows: open
-   **Settings → Startup**, choose that profile, set a delay if you want one,
-   and turn on **Enable startup automation**. This is the one action that
-   actually modifies your Windows configuration (it registers a per-user
-   Task Scheduler entry) - it only happens when you flip this switch
-   yourself.
+### 1. Get the installer from GitHub
+
+This repository does not currently have a published [Release](../../releases)
+with a ready-made installer attached. Until one exists, build it yourself:
+
+```bash
+git clone https://github.com/ChamanPreetSingh184/automation-launcher.git
+cd automation-launcher
+npm install
+npm run build:agent
+npm run tauri build
+```
+
+(Requires Node.js 20+, Rust, and the .NET 9 SDK - see "Development
+requirements" below. This only needs to be done once, or whenever you want a
+newer version.)
+
+This produces two installer files under `src-tauri/target/release/bundle/`:
+
+- `nsis\Automation Launcher_<version>_x64-setup.exe` (recommended - smaller)
+- `msi\Automation Launcher_<version>_x64_en-US.msi` (alternative)
+
+If you're not building it yourself, ask whoever built it for you for a copy
+of one of these two files - that's the only thing you need to install it.
+
+### 2. Install it
+
+1. Double-click the `-setup.exe` (or `.msi`) file.
+2. Since it isn't code-signed, Windows SmartScreen will likely show an
+   "unrecognized app" warning the first time — click **More info → Run
+   anyway** if you trust where it came from.
+3. Follow the installer prompts. It installs per-user (no admin rights
+   needed) to `%LOCALAPPDATA%\Automation Launcher\` and adds a Start Menu
+   shortcut plus a normal entry in Windows Settings → Apps for uninstalling
+   later.
+
+### 3. First run
+
+1. Launch **Automation Launcher** from the Start Menu.
+2. There's nothing configured yet — go to **Profiles → Create Profile**, add
+   a few tasks (an app, a URL, a Chrome/Edge window, or a wait), and hit
+   **Run Now** to see it work.
+
+### 4. Make it start automatically when you sign in to Windows
+
+By default, nothing runs automatically — this is an explicit opt-in step. To
+turn it on:
+
+1. Open **Settings → Startup** inside the app.
+2. Under **Startup profile**, pick the profile you want to run.
+3. Optionally adjust **Startup delay (seconds)** — how long to wait after
+   you sign in before it runs (default 10s, useful for letting the network
+   or other apps finish loading first).
+4. Turn on **Enable startup automation**.
+
+This is the one action that actually modifies your Windows configuration: it
+registers a per-user Windows Task Scheduler entry (name:
+`AutomationLauncherAgent`, trigger: **at log on**) that silently starts the
+background agent and runs your chosen profile every time you sign into
+Windows — it does **not** run at raw machine power-on/BIOS boot, only once
+you actually log into your Windows user account, same as anything else set
+to "run at startup." No terminal, dev tools, or the app's own window need to
+be open for this to happen — the agent runs invisibly in the background.
+
+To turn it off again later: open **Settings → Startup** and switch **Enable
+startup automation** off — this removes the Task Scheduler entry
+immediately. You can also inspect or remove it manually via Windows' own
+**Task Scheduler** app, under Task Scheduler Library, if you ever want to
+check it yourself.
 
 **Your data** lives in `%APPDATA%\AutomationLauncher\` (profiles, settings,
 execution history, logs) - it's created automatically and isn't touched by

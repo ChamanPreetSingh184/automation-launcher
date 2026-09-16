@@ -94,7 +94,9 @@ describe("settingsFormSchema", () => {
     startMinimized: false,
     startupAutomationEnabled: true,
     startupProfileId: "abc123",
+    startupTriggerType: "login" as const,
     startupDelaySeconds: 10,
+    startupDailyTime: null,
     theme: "dark" as const,
   };
 
@@ -108,5 +110,24 @@ describe("settingsFormSchema", () => {
 
   it("rejects a startup delay outside the allowed range", () => {
     expect(settingsFormSchema.safeParse({ ...valid, startupDelaySeconds: -5 }).success).toBe(false);
+  });
+
+  it("requires a valid daily time when the trigger is dailyAtTime", () => {
+    expect(
+      settingsFormSchema.safeParse({ ...valid, startupTriggerType: "dailyAtTime", startupDailyTime: null }).success,
+    ).toBe(false);
+    expect(
+      settingsFormSchema.safeParse({ ...valid, startupTriggerType: "dailyAtTime", startupDailyTime: "5pm" }).success,
+    ).toBe(false);
+    expect(
+      settingsFormSchema.safeParse({ ...valid, startupTriggerType: "dailyAtTime", startupDailyTime: "17:00" })
+        .success,
+    ).toBe(true);
+  });
+
+  it("does not require a daily time when the trigger is login", () => {
+    expect(settingsFormSchema.safeParse({ ...valid, startupTriggerType: "login", startupDailyTime: null }).success).toBe(
+      true,
+    );
   });
 });

@@ -6,6 +6,8 @@ export type ExecutionStatus = "running" | "completed" | "completedWithErrors" | 
 
 export type AppTheme = "dark" | "light" | "system";
 
+export type StartupTriggerType = "login" | "dailyAtTime";
+
 export interface TaskConfiguration {
   applicationPath?: string | null;
   arguments?: string | null;
@@ -41,7 +43,11 @@ export interface AppSettings {
   startMinimized: boolean;
   startupAutomationEnabled: boolean;
   startupProfileId: string | null;
+  startupTriggerType: StartupTriggerType;
+  /** Only used when startupTriggerType is "login". */
   startupDelaySeconds: number;
+  /** Only used when startupTriggerType is "dailyAtTime". 24-hour "HH:mm", e.g. "17:00". */
+  startupDailyTime: string | null;
   theme: AppTheme;
 }
 

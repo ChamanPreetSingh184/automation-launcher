@@ -18,7 +18,8 @@ import { AgentStatusBadge } from "@/components/layout/AgentStatusBadge";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useProfilesStore } from "@/stores/profilesStore";
 import { ipc } from "@/lib/ipc";
-import type { AppSettings, AppTheme } from "@/types/automation";
+import { isValidTimeOfDay } from "@/lib/timeValidation";
+import type { AppSettings, AppTheme, StartupTriggerType } from "@/types/automation";
 
 const APP_VERSION = "0.1.0";
 
@@ -27,6 +28,7 @@ export function SettingsPage() {
   const { profiles, load: loadProfiles } = useProfilesStore();
   const { setTheme } = useTheme();
   const [delayInput, setDelayInput] = useState("10");
+  const [dailyTimeInput, setDailyTimeInput] = useState("17:00");
 
   useEffect(() => {
     load();
@@ -36,6 +38,10 @@ export function SettingsPage() {
   useEffect(() => {
     if (settings) setDelayInput(String(settings.startupDelaySeconds));
   }, [settings?.startupDelaySeconds]);
+
+  useEffect(() => {
+    if (settings?.startupDailyTime) setDailyTimeInput(settings.startupDailyTime);
+  }, [settings?.startupDailyTime]);
 
   if (!settings) {
     return <p className="text-sm text-muted-foreground">Loading settings...</p>;
@@ -52,6 +58,10 @@ export function SettingsPage() {
   async function handleToggleStartupEnabled(enabled: boolean) {
     if (!settings!.startupProfileId) {
       toast.error("Choose a startup profile first");
+      return;
+    }
+    if (enabled && settings!.startupTriggerType === "dailyAtTime" && !isValidTimeOfDay(settings!.startupDailyTime)) {
+      toast.error("Enter a valid time (HH:MM, 24-hour) first");
       return;
     }
     try {
@@ -138,11 +148,11 @@ export function SettingsPage() {
           <Card className="divide-y p-0">
             <SettingRow
               label="Enable startup automation"
-              description="Run your startup profile automatically after Windows login."
+              description="Run your startup profile automatically, without opening the app."
             >
               <Switch checked={settings.startupAutomationEnabled} onCheckedChange={handleToggleStartupEnabled} />
             </SettingRow>
-            <SettingRow label="Startup profile" description="Which profile runs at login.">
+            <SettingRow label="Startup profile" description="Which profile runs automatically.">
               <Select
                 value={settings.startupProfileId ?? undefined}
                 onValueChange={(id) => patch({ startupProfileId: id })}
@@ -159,17 +169,43 @@ export function SettingsPage() {
                 </SelectContent>
               </Select>
             </SettingRow>
-            <SettingRow label="Startup delay (seconds)" description="How long to wait after login before running.">
-              <Input
-                type="number"
-                min={0}
-                max={3600}
-                value={delayInput}
-                onChange={(e) => setDelayInput(e.target.value)}
-                onBlur={() => patch({ startupDelaySeconds: Number(delayInput) || 0 })}
-                className="w-24"
-              />
+            <SettingRow label="Run" description="When to run the startup profile.">
+              <Select
+                value={settings.startupTriggerType}
+                onValueChange={(v) => patch({ startupTriggerType: v as StartupTriggerType })}
+              >
+                <SelectTrigger className="w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="login">At Windows login</SelectItem>
+                  <SelectItem value="dailyAtTime">Daily at a specific time</SelectItem>
+                </SelectContent>
+              </Select>
             </SettingRow>
+            {settings.startupTriggerType === "login" ? (
+              <SettingRow label="Startup delay (seconds)" description="How long to wait after login before running.">
+                <Input
+                  type="number"
+                  min={0}
+                  max={3600}
+                  value={delayInput}
+                  onChange={(e) => setDelayInput(e.target.value)}
+                  onBlur={() => patch({ startupDelaySeconds: Number(delayInput) || 0 })}
+                  className="w-24"
+                />
+              </SettingRow>
+            ) : (
+              <SettingRow label="Time" description="24-hour clock - e.g. 17:00 for 5 PM.">
+                <Input
+                  type="time"
+                  value={dailyTimeInput}
+                  onChange={(e) => setDailyTimeInput(e.target.value)}
+                  onBlur={() => patch({ startupDailyTime: dailyTimeInput || null })}
+                  className="w-32"
+                />
+              </SettingRow>
+            )}
           </Card>
         </TabsContent>
 

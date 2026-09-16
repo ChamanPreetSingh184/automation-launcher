@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidTimeOfDay } from "@/lib/timeValidation";
 
 export const taskTypeSchema = z.enum(["application", "url", "chrome", "edge", "wait"]);
 
@@ -82,13 +83,27 @@ export type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 export const appThemeSchema = z.enum(["dark", "light", "system"]);
 
-export const settingsFormSchema = z.object({
-  startWithWindows: z.boolean(),
-  startMinimized: z.boolean(),
-  startupAutomationEnabled: z.boolean(),
-  startupProfileId: z.string().nullable(),
-  startupDelaySeconds: z.coerce.number().int().min(0, "Must be 0 or more").max(3600, "Must be 3600 or less"),
-  theme: appThemeSchema,
-});
+export const startupTriggerTypeSchema = z.enum(["login", "dailyAtTime"]);
+
+export const settingsFormSchema = z
+  .object({
+    startWithWindows: z.boolean(),
+    startMinimized: z.boolean(),
+    startupAutomationEnabled: z.boolean(),
+    startupProfileId: z.string().nullable(),
+    startupTriggerType: startupTriggerTypeSchema,
+    startupDelaySeconds: z.coerce.number().int().min(0, "Must be 0 or more").max(3600, "Must be 3600 or less"),
+    startupDailyTime: z.string().nullable(),
+    theme: appThemeSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (data.startupTriggerType === "dailyAtTime" && !isValidTimeOfDay(data.startupDailyTime)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["startupDailyTime"],
+        message: "Enter a valid time (HH:MM, 24-hour).",
+      });
+    }
+  });
 
 export type SettingsFormValues = z.infer<typeof settingsFormSchema>;

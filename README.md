@@ -2,7 +2,7 @@
 
 A Windows desktop app for defining **automation profiles** — ordered
 sequences of apps, URLs, Chrome/Edge windows, shortcuts, and pauses — that
-run on demand or automatically at Windows login.
+run on demand, at Windows login, or daily at a time you choose.
 
 ## Features
 
@@ -12,8 +12,8 @@ run on demand or automatically at Windows login.
   **Microsoft Edge**, and **Wait**
 - Reorder, enable/disable, and configure per-task delays
 - **Run Now** with live, task-by-task progress
-- Automatic execution of a chosen startup profile at Windows login, with a
-  configurable delay
+- Automatic execution of a chosen startup profile, either **at Windows
+  login** (with a configurable delay) or **daily at a specific clock time**
 - Execution history with per-task results and human-readable error messages
 - Settings for general behavior, startup automation, appearance
   (dark/light/system), and agent management
@@ -67,26 +67,30 @@ of one of these two files - that's the only thing you need to install it.
    a few tasks (an app, a URL, a Chrome/Edge window, or a wait), and hit
    **Run Now** to see it work.
 
-### 4. Make it start automatically when you sign in to Windows
+### 4. Make it run automatically — at login, or daily at a specific time
 
 By default, nothing runs automatically — this is an explicit opt-in step. To
 turn it on:
 
 1. Open **Settings → Startup** inside the app.
 2. Under **Startup profile**, pick the profile you want to run.
-3. Optionally adjust **Startup delay (seconds)** — how long to wait after
-   you sign in before it runs (default 10s, useful for letting the network
-   or other apps finish loading first).
+3. Under **Run**, choose one of two triggers:
+   - **At Windows login** — runs shortly after you sign in. Set **Startup
+     delay (seconds)** to control how long it waits first (default 10s,
+     useful for letting the network or other apps finish loading).
+   - **Daily at a specific time** — runs every day at a clock time you pick
+     (e.g. `17:00` for 5 PM), regardless of when you logged in.
 4. Turn on **Enable startup automation**.
 
 This is the one action that actually modifies your Windows configuration: it
 registers a per-user Windows Task Scheduler entry (name:
-`AutomationLauncherAgent`, trigger: **at log on**) that silently starts the
-background agent and runs your chosen profile every time you sign into
-Windows — it does **not** run at raw machine power-on/BIOS boot, only once
-you actually log into your Windows user account, same as anything else set
-to "run at startup." No terminal, dev tools, or the app's own window need to
-be open for this to happen — the agent runs invisibly in the background.
+`AutomationLauncherAgent`) using either an **at log on** trigger or a
+**daily at `HH:MM`** trigger, matching whichever mode you picked. The login
+trigger does **not** fire at raw machine power-on/BIOS boot, only once you
+actually sign into your Windows user account; the daily trigger fires at
+that clock time regardless of login state, as long as Windows is running.
+No terminal, dev tools, or the app's own window need to be open for either
+to happen — the agent runs invisibly in the background.
 
 To turn it off again later: open **Settings → Startup** and switch **Enable
 startup automation** off — this removes the Task Scheduler entry
@@ -226,14 +230,22 @@ human-readable message.
 ## How startup automation works
 
 Settings → Startup has "Enable startup automation", a startup profile, and a
-startup delay (default 10s). Turning it on calls the agent's
-`register-startup` command, which registers a per-user Task Scheduler entry
-(`schtasks /Create /TN AutomationLauncherAgent /SC ONLOGON ...`) that runs
-`AutomationAgent.exe --startup` at login. In that mode the agent waits the
-configured delay, loads the startup profile, and runs it — then keeps
+**Run** trigger: either **at login** (with a configurable delay, default
+10s) or **daily at a specific time** (24-hour `HH:mm`). Turning automation on
+calls the agent's `register-startup` command, which registers a per-user
+Task Scheduler entry that runs `AutomationAgent.exe --startup` using
+whichever trigger is selected:
+
+- Login: `schtasks /Create /TN AutomationLauncherAgent /SC ONLOGON ...`
+- Daily at a time: `schtasks /Create /TN AutomationLauncherAgent /SC DAILY /ST HH:mm ...`
+
+In `--startup` mode, the agent applies the configured delay only for the
+login trigger (the daily trigger already fired at the right clock time, so
+no extra wait is added), loads the startup profile, and runs it — then keeps
 serving normally, so the UI can still connect to it if you open the app
-later in that session. Turning the setting off calls `unregister-startup`,
-which removes the task.
+later. An invalid daily time is rejected with a clear error before
+`register-startup` ever runs `schtasks.exe`. Turning the setting off calls
+`unregister-startup`, which removes the task.
 
 **`schtasks.exe` is only ever invoked when you actually toggle this setting
 in the running app.** It is never run automatically as part of development,

@@ -1,0 +1,53 @@
+# --- Frontend (Node/Vite) ---
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+test-results/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Tauri / Rust ---
+src-tauri/target/
+src-tauri/gen/schemas/
+# Published/bundled agent binary copied in for release builds (see package.json's build:agent) - regenerate, don't commit.
+src-tauri/resources/
+
+# --- .NET / C# ---
+agent/**/bin/
+agent/**/obj/
+agent/**/TestResults/
+*.user
+
+# --- Secrets / local configuration ---
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+id_rsa*
+credentials*.json
+secrets*
+
+# --- Runtime data (this app's own %APPDATA% store is outside the repo, but guard against accidental local copies) ---
+logs/
+*.log
+AutomationLauncher/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# --- This assistant's local dev-preview config (machine-specific, not part of the project) ---
+.claude/

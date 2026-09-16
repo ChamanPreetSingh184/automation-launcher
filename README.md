@@ -19,6 +19,41 @@ run on demand or automatically at Windows login.
   (dark/light/system), and agent management
 - Desktop notifications on run completion
 
+## Installing (for end users)
+
+You don't need Node, Rust, or .NET installed to just *use* the app - those
+are only required to build it. To install and run it:
+
+1. **Get the installer.** Either download it from this repository's
+   [Releases](../../releases) page if one has been published, or build it
+   yourself (see "Building the Windows application" below) — the installer
+   ends up at `src-tauri/target/release/bundle/nsis/Automation Launcher_<version>_x64-setup.exe`
+   (or the `.msi` next to it).
+2. **Run the installer** and follow the prompts. Since it isn't code-signed,
+   Windows SmartScreen will likely show an "unrecognized app" warning the
+   first time — click **More info → Run anyway** if you trust where it came
+   from.
+3. **Launch "Automation Launcher"** from the Start Menu.
+4. On first launch there's nothing configured yet - go to **Profiles →
+   Create Profile**, add a few tasks (an app, a URL, a Chrome/Edge window,
+   or a wait), and hit **Run Now** to try it.
+5. To have a profile run automatically every time you log into Windows: open
+   **Settings → Startup**, choose that profile, set a delay if you want one,
+   and turn on **Enable startup automation**. This is the one action that
+   actually modifies your Windows configuration (it registers a per-user
+   Task Scheduler entry) - it only happens when you flip this switch
+   yourself.
+
+**Your data** lives in `%APPDATA%\AutomationLauncher\` (profiles, settings,
+execution history, logs) - it's created automatically and isn't touched by
+reinstalling the app.
+
+**To uninstall:** if you enabled startup automation, turn it off in Settings
+first (this removes the Task Scheduler entry), then uninstall normally via
+Windows Settings → Apps. Uninstalling doesn't delete
+`%APPDATA%\AutomationLauncher\` - remove that folder yourself if you want a
+completely clean removal.
+
 ## Architecture
 
 ```
